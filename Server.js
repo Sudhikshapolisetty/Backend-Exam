@@ -2,73 +2,71 @@ const http = require('http');
 const fs = require('fs');
 const url = require('url');
 
+const PORT_NUMBER = process.env.PORT_NUMBER || 8080;
 
-const PORT = process.env.PORT || 8080;
-
-
-const server = http.createServer((req, res) => {
-    const parsedUrl = url.parse(req.url, true);
-    const pathname = parsedUrl.pathname;
+const server = http.createServer((request, response) => {
+    const parsedUrl = url.parse(request.url, true);
+    const path = parsedUrl.pathname;
     const query = parsedUrl.query;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${pathname}`);
-    if (req.method === 'POST' && pathname === '/createFile') {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk.toString();
+    console.log(`[${new Date().toISOString()}] ${request.method} ${path}`);
+    if (request.method === 'POST' && path === '/createFile') {
+        let requestBody = '';
+        request.on('data', chunk => {
+            requestBody += chunk.toString();
         });
-        req.on('end', () => {
-            const { filename, content } = JSON.parse(body);
+        request.on('end', () => {
+            const { filename, content } = JSON.parse(requestBody);
             if (!filename || !content) {
-                res.writeHead(400, {'Content-Type': 'text/plain'});
-                res.end('Both filename and content are required.');
+                response.writeHead(400, {'Content-Type': 'text/plain'});
+                response.end('Both filename and content are required.');
             } else {
                 fs.writeFile(filename, content, (err) => {
                     if (err) {
                         console.error(err);
-                        res.writeHead(500, {'Content-Type': 'text/plain'});
-                        res.end('Failed to create or modify the file.');
+                        response.writeHead(500, {'Content-Type': 'text/plain'});
+                        response.end('Failed to create or modify the file.');
                     } else {
-                        res.writeHead(200, {'Content-Type': 'text/plain'});
-                        res.end('File created or modified successfully.');
+                        response.writeHead(200, {'Content-Type': 'text/plain'});
+                        response.end('File created or modified successfully.');
                     }
                 });
             }
         });
-    } else if (req.method === 'GET') {
-        if (pathname === '/getFiles') {
+    } else if (request.method === 'GET') {
+        if (path === '/getFiles') {
             fs.readdir('.', (err, files) => {
                 if (err) {
                     console.error(err);
-                    res.writeHead(500, {'Content-Type': 'text/plain'});
-                    res.end('Failed to retrieve the list of files.');
+                    response.writeHead(500, {'Content-Type': 'text/plain'});
+                    response.end('Failed to retrieve the list of files.');
                 } else {
-                    res.writeHead(200, {'Content-Type': 'application/json'});
-                    res.end(JSON.stringify(files));
+                    response.writeHead(200, {'Content-Type': 'application/json'});
+                    response.end(JSON.stringify(files));
                 }
             });
-        } else if (pathname === '/getFile') {
+        } else if (path === '/getFile') {
             const filename = query.filename;
             if (!filename) {
-                res.writeHead(400, {'Content-Type': 'text/plain'});
-                res.end('Filename is required.');
+                response.writeHead(400, {'Content-Type': 'text/plain'});
+                response.end('Filename is required.');
             } else {
                 fs.readFile(filename, 'utf8', (err, data) => {
                     if (err) {
                         console.error(err);
-                        res.writeHead(400, {'Content-Type': 'text/plain'});
-                        res.end('File not found.');
+                        response.writeHead(400, {'Content-Type': 'text/plain'});
+                        response.end('File not found.');
                     } else {
-                        res.writeHead(200, {'Content-Type': 'text/plain'});
-                        res.end(data);
+                        response.writeHead(200, {'Content-Type': 'text/plain'});
+                        response.end(data);
                     }
                 });
             }
         }
     } else {
-        res.writeHead(404, {'Content-Type': 'text/plain'});
-        res.end('Page not found.');
+        response.writeHead(404, {'Content-Type': 'text/plain'});
+        response.end('Page not found.');
     }
 });
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+server.listen(PORT_NUMBER, () => {
+    console.log(`Server is running on port ${PORT_NUMBER}`);
 });
